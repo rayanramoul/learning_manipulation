@@ -8,3 +8,8 @@ conda env create -f environment.yml
 conda activate learning
 python main.py
 ```
+
+
+## Get the dataset 
+Connect to Kaggle and get the Dogs vs Cats dataset from this link:
+https://www.kaggle.com/competitions/dogs-vs-cats/data
