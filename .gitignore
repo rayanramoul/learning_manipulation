@@ -162,3 +162,16 @@ cython_debug/
 
 # Data
 *data*
+
+
+# Model  weights
+*weights*
+*ipynb_checkpoints*
+*checkpoints*
+*.pth
+*.ckpt
+*.pt
+*.h5
+*.hdf5
+*.pkl
+*pickle*

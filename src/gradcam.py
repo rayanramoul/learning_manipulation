@@ -1,3 +1,13 @@
+import cv2
+import torch
+import numpy as np
+from torchvision import transforms
+from skimage.filters import threshold_otsu
+from PIL import Image
+
+import scipy.ndimage as ndimage
+import scipy.spatial as spatial
+
 class ExtractActiv:
     """
     Allow extraction of each output of layer 
@@ -39,6 +49,10 @@ class ModelOutputs:
         return self.feature_extractor.gradients
     
     def __call__(self, inpu):
+        # if there is gpu we take the image on gpu
+        if torch.cuda.is_available():
+            inpu = inpu.cuda()
+        
         activations = []
         for name, layer in self.model._modules.items():
             if layer == self.feature:
@@ -84,7 +98,7 @@ class GradCam:
         one_hot = torch.from_numpy(one_hot).requires_grad_(True)
         if self.use_cuda:
             one_hot = one_hot.cuda()
-        
+            output = output.cuda()
         one_hot = torch.sum(one_hot * output)
 
         # We calculate gradient then we extract it with the appropriate class
@@ -110,3 +124,124 @@ class GradCam:
         cam = cam / np.max(cam)
         return cam
 
+def preprocess_image(img):
+    """
+    Normalizing an image using mean and std of VOC dataset.
+    """
+
+    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                 std=[0.229, 0.224, 0.225])
+    preprocessing = transforms.Compose([
+            transforms.Resize((128, 128)),
+            transforms.ColorJitter(),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor()
+    ])
+    numpy_image = img.copy()
+    torch_img = Image.fromarray(np.uint8(numpy_image)).convert('RGB') 
+    print("type torch_img : ", type(torch_img))
+    preprocessed_img  = preprocessing(torch_img)
+    return preprocessed_img.unsqueeze(0)
+
+def eval_image(model, gradcam, path, target_category=4):
+    """
+    Evaluate an Image with GradCAM algorithm
+    Input :
+        model : Resnet50 model
+        path : path for the image to predict heatmap from
+        target_category : which category prediction we're interested in
+    Output :
+        input_img : the image after preprocessing
+        grayscale_cam : heatmap of relevant pixels in picture
+        cam : Image + heatmap
+        img : original image
+    """
+
+    img = cv2.imread(path, 1)
+    #img = cv2.resize(img, (224, 224))
+    img = np.float32(img) / 255
+    # Opencv loads as BGR:
+    print("img shape : ", img.shape)
+    img = img[:, :, ::-1]
+    input_img = preprocess_image(img)
+
+    # If None, returns the map for the highest scoring category.
+    # Otherwise, targets the requested category.
+    grayscale_cam = gradcam(input_img, target_category)
+    
+    # resize grayscale cam to original image size
+    grayscale_cam = cv2.resize(grayscale_cam, (img.shape[1], img.shape[0]))
+    
+    cam = show_cam_on_image(img, grayscale_cam)
+    
+    return input_img, grayscale_cam, cam, img
+
+def show_cam_on_image(img, mask):
+    """
+    Input :
+        mask : Heatmap from GradCAM
+        img : Original Image
+    Output :
+        cam : The image with a heatmap mask on it
+    """
+
+    heatmap = cv2.applyColorMap(np.uint8(255 * mask), cv2.COLORMAP_JET)
+    heatmap = np.float32(heatmap) / 255
+    cam = heatmap + np.float32(img)
+    cam = cam / np.max(cam)
+    return np.uint8(255 * cam)
+
+def get_bdbox_from_heatmap(heatmap, threshold=0.2, smooth_radius=20):
+    """
+    Function to extract bounding boxes of objects in heatmap
+    Input :
+        Heatmap : matrix extracted with GradCAM. 
+        threshold : value defining the values we consider , increasing it increases the size of bounding boxes.
+        smooth_radius : radius on which each pixel is blurred. 
+    Output :
+        returned_objects : List of bounding boxes, N_objects * [ xmin, xmax, ymin, ymax, width, height ]
+    """
+
+    # If heatmap is all zeros i initialize a default bounding box which wraps entire image
+    xmin = 0
+    xmax = heatmap.shape[1]
+    ymin = 0
+    ymax = heatmap.shape[0]
+    width = xmax-xmin
+    height = ymax-ymin
+    
+    returned_objects = []
+
+    # Count if there is any "hot" value on the heatmap
+    count = (heatmap > threshold).sum() 
+    
+    # Blur the image to have continuous regions
+    heatmap = ndimage.uniform_filter(heatmap, smooth_radius)
+
+    # Threshold the heatmap with 1 for values > threshold and 0 else
+    thresholded = np.where(heatmap > threshold, 1, 0)
+
+    # Apply morphological filter to fill potential holes in the heatmap
+    thresholded =  ndimage.morphology.binary_fill_holes(thresholded)
+
+    # Detect all independant objects in the image
+    labeled_image, num_features = ndimage.label(thresholded)
+    objects = ndimage.measurements.find_objects(labeled_image)
+    
+    # We loop in each object ( if any is detected ) and append it to a global list
+    if count > 0:
+        for obj in objects:
+            x = obj[1]
+            y = obj[0]
+            xmin = x.start
+            xmax = x.stop
+            ymin = y.start
+            ymax = y.stop
+
+            width = xmax-xmin
+            height = ymax-ymin
+            
+            returned_objects.append([xmin, xmax, ymin, ymax, width, height])
+    else:
+        returned_objects.append([xmin, xmax, ymin, ymax, width, height])
+    return returned_objects
