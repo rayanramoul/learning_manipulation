@@ -71,21 +71,23 @@ class GradCam:
     """
         Class for computing forward pass on a given model and extract Heatmap.
     """
-    def __init__(self, model, feature_layer=None, target_layer=2, use_cuda=False):
+    def __init__(self, model, feature_layer=None, target_layer=2, device=None):
         self.model = model
         # GradCam have to be run with fixed weights
         self.model.eval() 
         self.convlayer = feature_layer
-        self.workflow = ModelOutputs(self.model, self.convlayer, target_layer)  
-        self.use_cuda = use_cuda
+        self.workflow = ModelOutputs(self.model, self.convlayer, target_layer)
+        if not device:
+            device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.device = device
 
     def forward(self, image):
         return self.model(image)
 
     def __call__(self, input_img, target_category=None):
         # If we're using a gpu take the image on gpu
-        if self.use_cuda:
-            input_img = input_img.cuda()
+        
+        input_img.to(self.device)
 
         # Doing a forward pass with the image
         features, output = self.workflow(input_img)
@@ -96,9 +98,9 @@ class GradCam:
         one_hot = np.zeros((1, output.size()[-1]), dtype=np.float32)
         one_hot[0][target_category] = 1
         one_hot = torch.from_numpy(one_hot).requires_grad_(True)
-        if self.use_cuda:
-            one_hot = one_hot.cuda()
-            output = output.cuda()
+        
+        one_hot = one_hot.to(self.device)
+        output = output.to(self.device)
         one_hot = torch.sum(one_hot * output)
 
         # We calculate gradient then we extract it with the appropriate class
@@ -124,30 +126,20 @@ class GradCam:
         cam = cam / np.max(cam)
         return cam
 
-def preprocess_image(img):
+def preprocess_image(img, preprocess):
     """
     Normalizing an image using mean and std of VOC dataset.
     """
-
-    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                 std=[0.229, 0.224, 0.225])
-    preprocessing = transforms.Compose([
-            transforms.Resize((128, 128)),
-            transforms.ColorJitter(),
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor()
-    ])
     numpy_image = img.copy()
     torch_img = Image.fromarray(np.uint8(numpy_image)).convert('RGB') 
     print("type torch_img : ", type(torch_img))
-    preprocessed_img  = preprocessing(torch_img)
+    preprocessed_img  = preprocess(torch_img)
     return preprocessed_img.unsqueeze(0)
 
-def eval_image(model, gradcam, path, target_category=4):
+def eval_image(gradcam, path, target_category=4, transform_pipeline=None):
     """
     Evaluate an Image with GradCAM algorithm
     Input :
-        model : Resnet50 model
         path : path for the image to predict heatmap from
         target_category : which category prediction we're interested in
     Output :
@@ -163,12 +155,12 @@ def eval_image(model, gradcam, path, target_category=4):
     # Opencv loads as BGR:
     print("img shape : ", img.shape)
     img = img[:, :, ::-1]
-    input_img = preprocess_image(img)
+    input_img = preprocess_image(img, transform_pipeline)
 
     # If None, returns the map for the highest scoring category.
     # Otherwise, targets the requested category.
     grayscale_cam = gradcam(input_img, target_category)
-    
+      
     # resize grayscale cam to original image size
     grayscale_cam = cv2.resize(grayscale_cam, (img.shape[1], img.shape[0]))
     

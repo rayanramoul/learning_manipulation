@@ -13,3 +13,11 @@ python main.py
 ## Get the dataset 
 Connect to Kaggle and get the Dogs vs Cats dataset from this link:
 https://www.kaggle.com/competitions/dogs-vs-cats/data
+
+## How to use ?
+
+## Next Steps
+- Add feature maps visualization.
+- Genearalize to multiple images the visualization.
+- Verify calculus of gradcam.
+- Think on how to verbalize the non-explainability of the features used.
