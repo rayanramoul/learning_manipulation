@@ -132,7 +132,7 @@ def preprocess_image(img, preprocess):
     """
     numpy_image = img.copy()
     torch_img = Image.fromarray(np.uint8(numpy_image)).convert('RGB') 
-    print("type torch_img : ", type(torch_img))
+    # print("type torch_img : ", type(torch_img))
     preprocessed_img  = preprocess(torch_img)
     return preprocessed_img.unsqueeze(0)
 
@@ -153,8 +153,8 @@ def eval_image(gradcam, path, target_category=4, transform_pipeline=None):
     #img = cv2.resize(img, (224, 224))
     img = np.float32(img) / 255
     # Opencv loads as BGR:
-    print("img shape : ", img.shape)
-    img = img[:, :, ::-1]
+    # print("img shape : ", img.shape)
+    img = cv2.resize(img[:, :, ::-1], (224, 224))
     input_img = preprocess_image(img, transform_pipeline)
 
     # If None, returns the map for the highest scoring category.

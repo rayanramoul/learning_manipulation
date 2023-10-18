@@ -14,12 +14,14 @@ executing @ file:///home/conda/feedstock_root/build_artifacts/executing_16673173
 filelock==3.12.4
 fonttools==4.43.1
 fsspec==2023.9.2
+grad-cam==1.4.8
 idna==3.4
 imageio==2.31.5
 ipykernel @ file:///home/conda/feedstock_root/build_artifacts/ipykernel_1693880262622/work
 ipython @ file:///home/conda/feedstock_root/build_artifacts/ipython_1696264049390/work
 jedi @ file:///home/conda/feedstock_root/build_artifacts/jedi_1696326070614/work
 Jinja2==3.1.2
+joblib==1.3.2
 jupyter-client @ file:///home/conda/feedstock_root/build_artifacts/jupyter_client_1654730843242/work
 jupyter_core @ file:///home/conda/feedstock_root/build_artifacts/jupyter_core_1696972408382/work
 kiwisolver==1.4.5
@@ -62,16 +64,20 @@ pytz==2023.3.post1
 pyzmq @ file:///croot/pyzmq_1686601365461/work
 requests==2.31.0
 scikit-image==0.22.0
+scikit-learn==1.3.1
 scipy==1.11.3
 six @ file:///home/conda/feedstock_root/build_artifacts/six_1620240208055/work
 stack-data @ file:///home/conda/feedstock_root/build_artifacts/stack_data_1669632077133/work
 sympy==1.12
+threadpoolctl==3.2.0
 tifffile==2023.9.26
 torch==2.1.0
 torchvision==0.16.0
 tornado @ file:///home/conda/feedstock_root/build_artifacts/tornado_1648827254365/work
+tqdm==4.66.1
 traitlets @ file:///home/conda/feedstock_root/build_artifacts/traitlets_1696377679271/work
 triton==2.1.0
+ttach==0.0.3
 typing_extensions @ file:///home/conda/feedstock_root/build_artifacts/typing_extensions_1695040754690/work
 tzdata==2023.3
 urllib3==2.0.6

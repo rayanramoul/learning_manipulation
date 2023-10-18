@@ -60,25 +60,24 @@ class ResNet():
     def visualize_feature_maps(self, image):
         outputs = []
         names = []
+        processed = []  # Initialize the list to store feature maps
+
         for layer in self.conv_layers[0:]:
             image = layer(image)
             outputs.append(image)
             names.append(str(layer))
-        print(len(outputs))#print feature_maps
-        for feature_map in outputs:
-            print(feature_map.shape)
-        processed = []
-        for feature_map in outputs:
-            feature_map = feature_map.squeeze(0)
-            gray_scale = torch.sum(feature_map,0)
-            gray_scale = gray_scale / feature_map.shape[0]
-            processed.append(gray_scale.data.cpu().numpy())
-            
+
+            for feature_map in outputs:
+                feature_map = feature_map.squeeze(0)
+                gray_scale = torch.sum(feature_map, 0)
+                gray_scale = gray_scale / feature_map.shape[0]
+                processed.append(gray_scale.data.cpu().numpy())
+
         fig = plt.figure(figsize=(30, 50))
         for i in range(len(processed)):
-            a = fig.add_subplot(5, 4, i+1)
+            a = fig.add_subplot(5, 4, i % 20 + 1)
             imgplot = plt.imshow(processed[i])
             a.axis("off")
-            a.set_title(names[i].split('(')[0], fontsize=30)
-        plt.savefig(str('feature_maps.jpg'), bbox_inches='tight')
-        
+            a.set_title(str(names[0]), fontsize=30)
+
+        plt.savefig('feature_maps.jpg', bbox_inches='tight')
