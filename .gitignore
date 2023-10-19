@@ -161,7 +161,7 @@ cython_debug/
 
 
 # Data
-*data*
+*data/*
 
 
 # Model  weights
