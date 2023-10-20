@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 cudnn.benchmark = True
 
 class ResNet():
-    def __init__(self, device=None, path = "checkpoints/resnet.pth", nbr_classes=2):
+    def __init__(self, device=None, path = "checkpoints/resnet.pth", nbr_classes=2, number_conv_layers=2):
         self.model = torchvision.models.resnet50(pretrained=True)
         num_ftrs = self.model.fc.in_features
         n_classes = nbr_classes
@@ -26,7 +26,6 @@ class ResNet():
         new_model = []
 
         # Define the desired number of convolutional layers
-        number_conv_layers = 2  # Adjust this to your desired number
 
         conv_layer_count = 0
         print(f"self model : ", self.model)
@@ -46,20 +45,14 @@ class ResNet():
                 break
         new_model = nn.Sequential(*new_model)
         
-        if last_conv_layer is not None:
-            # Calculate the number of input features for the Linear layer
-            for child in last_conv_layer.children():
-                for sub_child in child.children():
-                    # verify that sub chil is conv2d and not batch norm
-                    if type(sub_child) == nn.Conv2d:
-                        out_channels = sub_child.out_channels
-            num_ftrs = out_channels
-            # Add a Linear layer to the new_model
-            n_classes = nbr_classes
-            new_model.add_module("fc", nn.Linear(num_ftrs, n_classes))
-        else:
-            raise ValueError("No convolutional layers found in the specified layers.")
-
+        # Calculate the number of input features for the Linear layer
+        random_input = torch.randn(32, 3, 128, 128).to(self.device)
+        output = new_model(random_input)
+        print("output shape : ", output.shape)
+        num_ftrs = output.shape[1] * output.shape[2] * output.shape[3]
+        n_classes = nbr_classes
+        new_model.add_module("fc", nn.Linear(num_ftrs, n_classes))
+        
         # Now, new_model includes the last Linear layer with the appropriate input features
         
         print("new model : ", new_model)
