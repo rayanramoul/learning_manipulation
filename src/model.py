@@ -8,8 +8,9 @@ import matplotlib.pyplot as plt
 
 cudnn.benchmark = True
 
-class ResNet():
+class ResNet(nn.Module):
     def __init__(self, device=None, path = "checkpoints/resnet.pth", nbr_classes=2, number_conv_layers=2):
+        super(ResNet, self).__init__()
         self.model = torchvision.models.resnet50(pretrained=True)
         num_ftrs = self.model.fc.in_features
         n_classes = nbr_classes
@@ -18,17 +19,11 @@ class ResNet():
         if not device:
             device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.device = device
-        self.model.to(self.device)
-        self.model = self.model.to(self.device)
         self.inputs_ckpt = os.path.join("checkpoints", "resnet.pth")
         
         # Initialize a new model with the same architecture as self.model
         new_model = []
-
-        # Define the desired number of convolutional layers
-
         conv_layer_count = 0
-        print(f"self model : ", self.model)
         last_conv_layer = None  # Initialize with None
         for name, child in self.model.named_children():
             if conv_layer_count < number_conv_layers:
@@ -43,19 +38,54 @@ class ResNet():
             else:
                 # If you've reached the desired number of convolutional layers, stop adding
                 break
-        new_model = nn.Sequential(*new_model)
+        # add (avgpool): AdaptiveAvgPool2d(output_size=(1, 1))
+        # new_model.append(nn.AdaptiveAvgPool2d(output_size=(1, 1)))
+        # add flatten layer :
+        # new_model.append(nn.Flatten())
+        
+        new_model = nn.Sequential(*new_model).to(self.device)
         
         # Calculate the number of input features for the Linear layer
+        print("last_conv_layer : ", last_conv_layer)
+        shape = None
+        for name, children in last_conv_layer.named_children():
+            # check if this children is the last one if so continue
+            
+            for name_2, children_2 in children.named_children():
+                if name_2 == "relu":
+                    continue
+                elif name_2 == "downsample":
+                    for name_3, children_3 in children_2.named_children():
+                        # print("\n\nMODULE name : ", name_3)
+                        # print("DIR : ", dir(children_3))
+                        try:
+                            print("num features : ", children_3.num_features)
+                            num_ftrs = children_3.num_features
+                        except:
+                            pass
+                        # print("weight : ", children_3.weight.shape)
+                else: 
+                    # print("\n\nMODULE name : ", name_2)
+                    # print("DIR : ", dir(children_2))
+                    try:
+                        # print("num features : ", children_2.num_features)
+                        num_ftrs = children_2.num_features
+                    except:
+                        pass
+                    # print("weight : ", children_2.weight.shape)
         random_input = torch.randn(32, 3, 128, 128).to(self.device)
         output = new_model(random_input)
-        print("output shape : ", output.shape)
-        num_ftrs = output.shape[1] * output.shape[2] * output.shape[3]
+        # print("output shape : ", output.shape)
+        # num_ftrs = output.shape[1] # output.shape[1] * output.shape[2] * output.shape[3]
         n_classes = nbr_classes
+        print("attributes of last_conv_layer : ", dir(last_conv_layer))
+        
+        num_ftrs = 8
         new_model.add_module("fc", nn.Linear(num_ftrs, n_classes))
         
         # Now, new_model includes the last Linear layer with the appropriate input features
-        
-        print("new model : ", new_model)
+        print("Original Model : ", self.model)
+        print("\n\n\n\nNew model : ", new_model)
         self.model = new_model
         self.model.to(self.device)
         
@@ -79,9 +109,9 @@ class ResNet():
                             self.conv_layers.append(child)
         print(f"Total convolution layers: {counter}")
         print("conv_layers")
-        
-        # print(f"\nMODEL SUMMARY:\n\n{self.model}\n")
+        self.last_conv_layer = last_conv_layer
 
+    
     def load_checkpoint(self, inputs_ckpt=None):
         if inputs_ckpt:
             self.inputs_ckpt = inputs_ckpt
