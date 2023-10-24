@@ -31,10 +31,10 @@ class CustomResNet(nn.Module):
         self.classifier = nn.Sequential(
             nn.Linear(self.num_features, num_classes),
         ).to(self.device)
-        print("\n\nCustom ResNet Model :")
-        print("self.features : ", self.features)
-        print("self.identity : ", self.identity)
-        print("self.classifier : ", self.classifier)
+        # print("\n\nCustom ResNet Model :")
+        # print("self.features : ", self.features)
+        # print("self.identity : ", self.identity)
+        # print("self.classifier : ", self.classifier)
         self.model_weights =[]
         self.conv_layers = []# get all the model children as list
         self.model_children = list(self.features.children())#counter to keep count of the conv layers
@@ -53,8 +53,8 @@ class CustomResNet(nn.Module):
                             self.model_weights.append(child.weight)
                             self.conv_layers.append(child)
                             last_conv_layer = child
-        print(f"Total convolution layers: {counter}")
-        print("conv_layers")
+        # print(f"Total convolution layers: {counter}")
+        # print("conv_layers")
         self.last_conv_layer = last_conv_layer
         
         
@@ -62,10 +62,10 @@ class CustomResNet(nn.Module):
         # Create a temporary tensor to get the shape
         x = torch.randn(32, 3, 128, 128).to(self.device)  # Batch size of 1, 3 channels, 224x224 image
         x = self.features(x)
-        print("\nCalculate num features : ", x.shape)
+        # print("\nCalculate num features : ", x.shape)
         num_features = x.view(x.size(0), -1).shape[1]
         # num_features = x.shape[-1] #  * x.shape[2] * x.shape[3]
-        print("num_features : ", num_features)
+        # print("num_features : ", num_features)
         return num_features
 
     def forward(self, x):
