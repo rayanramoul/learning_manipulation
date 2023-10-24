@@ -103,21 +103,6 @@ class ResNet(nn.Module):
         self.inputs_ckpt = os.path.join("checkpoints", "resnet.pth")
         
         
-        for idx, module in enumerate(self.model.children()):
-            if idx >= number_conv_layers:
-                for param in module.parameters():
-                    param.requires_grad = False  # Freeze the layers you want to replace
-                self.model[idx] = Identity()  # Replace the layer with Identity
-
-        self.model.fc = nn.Linear(self.model.fc.in_features, nbr_classes)
-
-        # Step 3: If you want to fine-tune the model, unfreeze the modified layers
-        for idx, module in enumerate(self.model.children()):
-            if idx >= number_conv_layers:
-                for param in module.parameters():
-                    param.requires_grad = True
-
-        """
         # Initialize a new model with the same architecture as self.model
         new_model = []
         conv_layer_count = 0
@@ -184,7 +169,7 @@ class ResNet(nn.Module):
         print("Original Model : ", self.model)
         print("\n\n\n\nNew model : ", new_model)
         self.model = new_model
-        """
+        
         self.model.to(self.device)
         print("Model loaded to device : ", self.model)
         # we will save the conv layer weights in this list
