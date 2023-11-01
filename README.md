@@ -21,6 +21,6 @@ https://www.kaggle.com/competitions/dogs-vs-cats/data
 - [X] Genearalize to multiple images the visualization.
 - [X] Verify calculus of gradcam.
 - [X] Think on how to verbalize the non-explainability of the features used.
-- Test multi  cut training combined with other metrics.
--  Split feature maps visualization from gradcam.
+- [X] Test multi  cut training combined with other metrics.
+- [X] Split feature maps visualization from gradcam.
 - At some point prune the network to use in the convolution part only the kernels or pixels that maximize the information (think about edge cases like some small set of images which sometime activate pixels/kernels that otherwise are never activated)

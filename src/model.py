@@ -17,10 +17,12 @@ class Identity(nn.Module):
         return x
 
 
-# Create a custom ResNet model with the desired changes
+
 resnet_model = torchvision.models.resnet50(pretrained=True)
-# Create a custom ResNet model with the desired changes
 class CustomResNet(nn.Module):
+    """ 
+    Create a custom ResNet model with the custom cuts and visualization of feature maps
+    """
     def __init__(self, replace_from_layer, num_classes=2, device="gpu"):
         super(CustomResNet, self).__init__()
         self.device = device
@@ -31,10 +33,6 @@ class CustomResNet(nn.Module):
         self.classifier = nn.Sequential(
             nn.Linear(self.num_features, num_classes),
         ).to(self.device)
-        # print("\n\nCustom ResNet Model :")
-        # print("self.features : ", self.features)
-        # print("self.identity : ", self.identity)
-        # print("self.classifier : ", self.classifier)
         self.model_weights =[]
         self.conv_layers = []# get all the model children as list
         self.model_children = list(self.features.children())#counter to keep count of the conv layers
@@ -53,11 +51,11 @@ class CustomResNet(nn.Module):
                             self.model_weights.append(child.weight)
                             self.conv_layers.append(child)
                             last_conv_layer = child
-        # print(f"Total convolution layers: {counter}")
-        # print("conv_layers")
         self.last_conv_layer = last_conv_layer
         
-        
+    def get_activation_maps(self, x):
+        return self.features(x)
+    
     def _calculate_num_features(self, replace_from_layer):
         # Create a temporary tensor to get the shape
         x = torch.randn(32, 3, 128, 128).to(self.device)  # Batch size of 1, 3 channels, 224x224 image
